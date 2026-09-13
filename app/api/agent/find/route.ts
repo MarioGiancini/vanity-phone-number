@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeAgent } from "@/lib/agent/auth";
 import { findCandidates, type FindInput } from "@/lib/agent/find";
-import { checkTwilioExact, twilioConfigured } from "@/lib/agent/twilio";
+import { anyProviderConfigured, checkExact } from "@/lib/agent/providers";
 import type { AvailabilityResult } from "@/lib/availability";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     candidates.map((candidate) => ({ ...candidate, availability: null }));
 
   const notes: string[] = [];
-  const configured = twilioConfigured();
+  const configured = anyProviderConfigured();
 
   if (shouldCheck && configured && results.length > 0) {
     const count = Math.max(1, Math.min(body.availabilityLimit ?? 5, results.length));
@@ -49,16 +49,16 @@ export async function POST(request: Request) {
         .slice(0, count)
         .map(async (candidate) => ({
           ...candidate,
-          availability: await checkTwilioExact(candidate.dialable),
+          availability: await checkExact(candidate.dialable),
         })),
     );
     results = [...checked, ...results.slice(count)];
     notes.push(
-      `Availability checked against Twilio's inventory for the top ${count} candidate(s) at request time. "Available" means Twilio can sell it; it may still be owned by another carrier.`,
+      `Availability checked against carrier inventory for the top ${count} candidate(s) at request time. "Available" means the provider can sell it; it may still be owned by another carrier.`,
     );
   } else if (shouldCheck && !configured) {
     notes.push(
-      "Availability was requested but Twilio isn't configured on the server. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to enable it.",
+      "Availability was requested but no carrier is configured. Set Twilio or Telnyx credentials to enable it.",
     );
   }
 

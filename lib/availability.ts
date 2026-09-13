@@ -5,7 +5,7 @@ export interface AvailabilityResult {
   configured: boolean;
   /** true = purchasable, false = not in inventory, null = unknown/error. */
   available: boolean | null;
-  provider: "twilio" | "none";
+  provider: "twilio" | "telnyx" | "none";
   /** How the check was performed. */
   method?: "exact" | "contains";
   message: string;

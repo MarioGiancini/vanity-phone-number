@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { discoverVanityNumbers } from "@/lib/agent/discover";
-import { twilioConfigured } from "@/lib/agent/twilio";
+import { anyProviderConfigured } from "@/lib/agent/providers";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -26,14 +26,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Provide a 3-digit areaCode." }, { status: 400 });
   }
 
-  if (!twilioConfigured()) {
+  if (!anyProviderConfigured()) {
     return NextResponse.json({
       areaCode,
       availabilityConfigured: false,
       scanned: 0,
       matches: 0,
       results: [],
-      notes: ["Availability checking isn't configured on the server."],
+      notes: ["No carrier is configured. Set Twilio or Telnyx credentials to scan inventory."],
     });
   }
 

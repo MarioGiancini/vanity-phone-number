@@ -9,11 +9,12 @@ issue. You'll get an acknowledgement and, where warranted, credit in the fix.
 
 This project is safe to self-host and never requires committed secrets:
 
-- `.env.local` (Twilio credentials, `VANITY_AGENT_API_KEY`) is gitignored.
+- `.env.local` (Twilio/Telnyx credentials, `VANITY_AGENT_API_KEY`) is gitignored.
 - `.mcp.json` (MCP config, contains the agent key) is gitignored.
 - `scripts/mcp-server.mjs` reads its key from the environment only.
-- Twilio credentials (API key or auth token) are read server-side in `lib/agent/twilio.ts` and never
-  returned to clients. Prefer a scoped API Key over the account Auth Token.
+- Carrier credentials (Twilio API key/auth token, Telnyx API key) are read server-side in
+  `lib/agent/twilio.ts` / `lib/agent/telnyx.ts` and never returned to clients. Prefer scoped API
+  keys over the account Auth Token.
 
 ## Abuse protection
 

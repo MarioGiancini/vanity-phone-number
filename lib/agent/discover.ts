@@ -2,7 +2,7 @@ import { DICTIONARY } from "@/data/dictionary";
 import { BUILT_IN_LISTS } from "@/data/word-lists";
 import { buildDigitIndex, decodeLocal, type DigitIndex } from "@/lib/vanity";
 import { isQualityReading } from "@/lib/word-quality";
-import { listAvailableNumbers } from "./twilio";
+import { listAvailableNumbers } from "./providers";
 
 let cachedIndex: DigitIndex | undefined;
 
@@ -39,6 +39,8 @@ export interface DiscoveredNumber {
   vanity: string;
   words: string[];
   score: number;
+  /** Which carrier's inventory this number came from. */
+  provider: string;
   locality?: string;
   region?: string;
 }
@@ -87,6 +89,7 @@ export async function discoverVanityNumbers(input: DiscoverInput): Promise<{
       vanity: reading.vanity,
       words: reading.words,
       score: reading.score,
+      provider: entry.provider,
       locality: entry.locality,
       region: entry.region,
     });

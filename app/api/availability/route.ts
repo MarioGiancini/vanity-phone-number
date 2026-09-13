@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkTwilioExact, twilioConfigured } from "@/lib/agent/twilio";
+import { anyProviderConfigured, checkExact, providerStatuses } from "@/lib/agent/providers";
 import { normalizeNanp } from "@/lib/phone";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 /** Reports whether availability checking is configured (no credentials leak). */
 export async function GET() {
-  return NextResponse.json({ configured: twilioConfigured(), provider: "twilio" });
+  return NextResponse.json({
+    configured: anyProviderConfigured(),
+    providers: providerStatuses(),
+  });
 }
 
 /** Checks whether a number is in Twilio's purchasable inventory. */
@@ -28,7 +31,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         number: body.number ?? "",
-        configured: twilioConfigured(),
+        configured: anyProviderConfigured(),
         available: null,
         provider: "none",
         method: "exact",
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await checkTwilioExact(number);
+  const result = await checkExact(number);
   return NextResponse.json(result, {
     status: result.available === null && result.configured ? 502 : 200,
   });
