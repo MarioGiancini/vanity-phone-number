@@ -25,6 +25,11 @@ export function GET() {
     license: "MIT",
     tools: [
       {
+        name: "find_available_numbers",
+        description:
+          "Scan available inventory for an area code and return the numbers that spell real words.",
+      },
+      {
         name: "find_vanity_numbers",
         description:
           "Find ranked vanity phone numbers from a brief. Set onlyAvailable to filter to numbers Twilio can sell.",

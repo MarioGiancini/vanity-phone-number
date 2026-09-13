@@ -28,6 +28,11 @@ export async function GET() {
           availabilityLimit: "optional number of top candidates to check (default 5)",
         },
       },
+      "POST /api/agent/discover": {
+        description:
+          "Scan an area code's available inventory and return numbers that spell real words. Use when the caller gives an area code/city but no specific words.",
+        body: { areaCode: "702", pages: "inventory pages to scan (default 3)", limit: 20, minScore: 80 },
+      },
       "POST /api/agent/decode": {
         description: "Decode a number into dictionary word readings.",
         body: { number: "string — 7 or 10 digits" },

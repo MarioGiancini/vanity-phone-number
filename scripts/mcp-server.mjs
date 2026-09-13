@@ -84,6 +84,18 @@ server.tool(
 );
 
 server.tool(
+  "find_available_numbers",
+  "Scan a carrier's available inventory for an area code and return the numbers that spell real words. Best for \"find me a cool available number in <city>\" when no specific words are given.",
+  {
+    areaCode: z.string().describe("3-digit area code"),
+    pages: z.number().int().min(1).max(10).optional(),
+    limit: z.number().int().min(1).max(50).optional(),
+    minScore: z.number().min(0).max(100).optional(),
+  },
+  (args) => guard(() => callApi("/api/agent/discover", args)),
+);
+
+server.tool(
   "decode_number",
   "Decode a phone number into the words it can spell.",
   {

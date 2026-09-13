@@ -78,6 +78,68 @@ interface TwilioNumber {
   region?: string;
 }
 
+export interface AvailableNumber {
+  phoneNumber: string;
+  locality?: string;
+  region?: string;
+}
+
+interface TwilioPage {
+  available_phone_numbers?: TwilioNumber[];
+  next_page_uri?: string | null;
+}
+
+/**
+ * Page through Twilio's available inventory for an area code. PageSize maxes at
+ * 1000, so this walks `next_page_uri` to sample a few thousand numbers.
+ */
+export async function listAvailableNumbers(
+  areaCode: string,
+  options: { pages?: number; fetchImpl?: FetchLike } = {},
+): Promise<AvailableNumber[]> {
+  const credentials = twilioCredentials();
+  if (!credentials) return [];
+  if (mockEnabled()) {
+    return [
+      { phoneNumber: `+1${areaCode}2442633`, locality: "Las Vegas", region: "NV" },
+      { phoneNumber: `+1${areaCode}7764726`, locality: "Las Vegas", region: "NV" },
+    ];
+  }
+
+  const pages = Math.max(1, Math.min(options.pages ?? 3, 10));
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const headers = {
+    Authorization: `Basic ${Buffer.from(`${credentials.username}:${credentials.password}`).toString("base64")}`,
+  };
+
+  const results: AvailableNumber[] = [];
+  let url: string | null =
+    `${API_BASE}/${credentials.accountSid}/AvailablePhoneNumbers/US/Local.json` +
+    `?AreaCode=${areaCode.replace(/[^0-9]/g, "").slice(0, 3)}&PageSize=1000`;
+
+  for (let page = 0; page < pages && url; page += 1) {
+    try {
+      const response = await fetchImpl(url, { headers, cache: "no-store" });
+      if (!response.ok) break;
+      const data = (await response.json()) as TwilioPage;
+      for (const entry of data.available_phone_numbers ?? []) {
+        if (entry.phone_number) {
+          results.push({
+            phoneNumber: entry.phone_number,
+            locality: entry.locality,
+            region: entry.region,
+          });
+        }
+      }
+      url = data.next_page_uri ? `https://api.twilio.com${data.next_page_uri}` : null;
+    } catch {
+      break;
+    }
+  }
+
+  return results;
+}
+
 async function requestAvailable(
   params: Record<string, string>,
   fetchImpl: FetchLike,
