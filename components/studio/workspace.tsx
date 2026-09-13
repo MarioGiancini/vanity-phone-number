@@ -4,18 +4,20 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CombosPanel } from "./panels/combos-panel";
 import { DecodePanel } from "./panels/decode-panel";
+import { DiscoverPanel } from "./panels/discover-panel";
 import { ListsPanel } from "./panels/lists-panel";
 import { PresetsPanel } from "./panels/presets-panel";
 import { SavedPanel } from "./panels/saved-panel";
 import { SpellPanel } from "./panels/spell-panel";
 import { useStudio } from "./studio-context";
 
-type TabId = "spell" | "combos" | "decode" | "presets" | "saved" | "lists";
+type TabId = "spell" | "combos" | "decode" | "discover" | "presets" | "saved" | "lists";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "spell", label: "Spell" },
   { id: "combos", label: "Combos" },
   { id: "decode", label: "Decode" },
+  { id: "discover", label: "Discover" },
   { id: "presets", label: "Presets" },
   { id: "saved", label: "Saved" },
   { id: "lists", label: "Lists" },
@@ -52,6 +54,7 @@ export function Workspace() {
         {tab === "spell" ? <SpellPanel /> : null}
         {tab === "combos" ? <CombosPanel onManageLists={() => setTab("lists")} /> : null}
         {tab === "decode" ? <DecodePanel /> : null}
+        {tab === "discover" ? <DiscoverPanel /> : null}
         {tab === "presets" ? <PresetsPanel /> : null}
         {tab === "saved" ? <SavedPanel /> : null}
         {tab === "lists" ? <ListsPanel /> : null}

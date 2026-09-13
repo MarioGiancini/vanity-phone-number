@@ -14,6 +14,39 @@ export interface AvailabilityResult {
   checkedAt: number;
 }
 
+export interface DiscoveredNumber {
+  number: string;
+  dialable: string;
+  vanity: string;
+  words: string[];
+  score: number;
+  locality?: string;
+  region?: string;
+}
+
+export interface DiscoverResponse {
+  areaCode: string;
+  scanned: number;
+  matches: number;
+  results: DiscoveredNumber[];
+  availabilityConfigured: boolean;
+  notes: string[];
+}
+
+/** Scan available inventory for an area code and return word-spelling numbers. */
+export async function discoverNumbers(areaCode: string, pages = 2): Promise<DiscoverResponse> {
+  const response = await fetch("/api/discover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ areaCode, pages }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Discovery failed (${response.status})`);
+  }
+  return (await response.json()) as DiscoverResponse;
+}
+
 const cache = new Map<string, AvailabilityResult>();
 
 /**

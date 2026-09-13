@@ -37,9 +37,17 @@ export function ResultCard({
 }: ResultCardProps) {
   const { setAreaCode, setEntry, toggleFavorite, isFavorite, recordRecent } = useStudio();
 
+  const grouping = useMemo(
+    () =>
+      words && words.length > 0 && words.every((word) => /^[A-Za-z]+$/.test(word))
+        ? words.map((word) => word.length)
+        : undefined,
+    [words],
+  );
+
   const built = useMemo(
-    () => buildVanity(areaCode, slotsFromText(local, 7), words?.map((word) => word.length)),
-    [areaCode, local, words],
+    () => buildVanity(areaCode, slotsFromText(local, 7), grouping),
+    [areaCode, local, grouping],
   );
 
   const saved = useMemo(

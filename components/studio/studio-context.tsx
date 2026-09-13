@@ -17,10 +17,10 @@ import { DEFAULT_PREFERENCES, type StudioPreferences } from "@/lib/storage/types
 import {
   buildDigitIndex,
   buildVanity,
+  entryGrouping,
   normalize,
   sanitizeEntry,
   slotsFromText,
-  tokenLengths,
   toSlots,
   type BuiltVanity,
   type DigitIndex,
@@ -100,7 +100,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, [repository]);
 
   const slots = useMemo(() => toSlots(slotsFromText(entry, MAX_LETTERS)), [entry]);
-  const grouping = useMemo(() => tokenLengths(entry), [entry]);
+  const grouping = useMemo(() => entryGrouping(entry), [entry]);
   const built = useMemo(() => buildVanity(areaCode, slots, grouping), [areaCode, slots, grouping]);
 
   const lists = useMemo<WordList[]>(() => [...BUILT_IN_LISTS, ...customLists], [customLists]);

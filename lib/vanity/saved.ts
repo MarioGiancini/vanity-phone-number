@@ -14,7 +14,10 @@ export interface MakeSavedInput {
 /** Build a persistable record from a candidate. */
 export function makeSavedNumber(input: MakeSavedInput): SavedNumber {
   const local = normalize(input.local);
-  const grouping = input.words?.map((word) => word.length);
+  const grouping =
+    input.words && input.words.every((word) => /^[A-Za-z]+$/.test(word))
+      ? input.words.map((word) => word.length)
+      : undefined;
   const built = buildVanity(input.areaCode, slotsFromText(local, 7), grouping);
 
   return {

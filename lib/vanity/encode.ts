@@ -41,3 +41,17 @@ export function tokenLengths(entry: string): number[] {
     .filter(Boolean)
     .map((token) => token.length);
 }
+
+/**
+ * Display grouping from a raw entry. Only words (entries containing letters)
+ * define grouping; a plain number falls back to the standard 3+4 split so the
+ * dialer shows "233-2566" rather than "2332566".
+ */
+export function entryGrouping(entry: string): number[] {
+  const tokens = entry
+    .split(/[\s-]+/)
+    .map((token) => token.replace(/[^A-Za-z0-9]/g, ""))
+    .filter(Boolean);
+  if (!tokens.some((token) => /[A-Za-z]/.test(token))) return [];
+  return tokens.map((token) => token.length);
+}
