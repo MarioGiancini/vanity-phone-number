@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "vanity": {
+      "command": "node",
+      "args": ["scripts/mcp-server.mjs"],
+      "env": {
+        "VANITY_API_URL": "http://localhost:3000",
+        "VANITY_AGENT_API_KEY": "paste-your-key-here"
+      }
+    }
+  }
+}

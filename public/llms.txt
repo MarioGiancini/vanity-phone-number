@@ -1,0 +1,44 @@
+# Vanity Phone Number Studio
+
+> Spell, test, and generate memorable vanity phone numbers from words, word combos, and dev terms.
+> Open source, local-first, and agent-native (REST + MCP).
+
+The app turns a brief or explicit words into vanity numbers (e.g. `702-PROGRAM` = 702-776-4726),
+decodes numbers back into words, generates bulk combos from themed word packs, and can verify
+availability against Twilio's inventory.
+
+## Install & run
+
+- [README](https://github.com/MarioGiancini/vanity-phone-number/blob/main/README.md): setup, scripts, architecture.
+- [Contributing](https://github.com/MarioGiancini/vanity-phone-number/blob/main/CONTRIBUTING.md): dev setup and word packs.
+
+## Agent API
+
+- [Docs](/docs): human-readable API guide.
+- [OpenAPI](/openapi.json): OpenAPI 3.1 description.
+- [API catalog](/.well-known/api-catalog): RFC 9727 linkset.
+- [Capability document](/api/agent): endpoints, themes, examples (no auth).
+- [auth.md](/auth.md): how agents authenticate.
+
+Endpoints:
+
+- `POST /api/agent/find` — brief or explicit words → ranked vanity numbers; optional availability.
+- `POST /api/agent/decode` — number → dictionary readings.
+- `POST /api/agent/verify` — batch-verify words against Twilio inventory.
+- `POST /api/availability` — single-number availability check (rate-limited).
+
+## MCP
+
+- [MCP server card](/.well-known/mcp/server-card): tools and stdio config.
+- [server.json](/server.json): registry manifest.
+- Server entrypoint: `scripts/mcp-server.mjs` (Node, stdio).
+
+## Optional configuration
+
+- `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` — enable availability checks. Without them the
+  availability path makes zero network calls.
+- `VANITY_AGENT_API_KEY` — enable the `/api/agent/*` routes.
+
+## License
+
+MIT.

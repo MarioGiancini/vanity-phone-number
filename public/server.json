@@ -1,0 +1,10 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.MarioGiancini/vanity-phone-number",
+  "description": "Find, decode, and verify vanity phone numbers. Turns a brief into ranked, verifiable numbers.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/MarioGiancini/vanity-phone-number",
+    "source": "github"
+  }
+}
