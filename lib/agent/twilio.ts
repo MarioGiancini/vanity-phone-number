@@ -1,5 +1,6 @@
 import type { AvailabilityResult } from "@/lib/availability";
 import { normalizeNanp } from "@/lib/phone";
+import { lettersToDigits } from "@/lib/vanity/encode";
 
 /** Injection seam for tests; defaults to the global fetch. */
 export type FetchLike = typeof fetch;
@@ -45,6 +46,23 @@ function mockEnabled(): boolean {
 }
 
 const API_BASE = "https://api.twilio.com/2010-04-01/Accounts";
+
+/** Does an E.164 number actually spell/contain the given pattern? */
+function matchesPattern(e164: string, pattern: string): boolean {
+  const expected = lettersToDigits(pattern.replace(/\*/g, ""));
+  if (!expected) return true;
+  return e164.replace(/[^0-9]/g, "").includes(expected);
+}
+
+function digitsOf(value: string): string {
+  return value.replace(/[^0-9]/g, "");
+}
+
+/** NANP digits without the country code, e.g. "+17027764726" -> "7027764726". */
+function nanpDigits(value: string): string {
+  const digits = digitsOf(value);
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+}
 
 export interface ContainsResult {
   pattern: string;
@@ -128,7 +146,16 @@ export async function checkTwilioExact(
     };
   }
 
-  const result = await requestAvailable({ PhoneNumber: number, PageSize: "1" }, fetchImpl);
+  // Twilio ignores the `PhoneNumber` filter, so scope by area code + a Contains
+  // pattern on the local digits, then confirm the exact number is in the result.
+  const digits = nanpDigits(number);
+  const areaCode = digits.slice(0, 3);
+  const local = digits.slice(3);
+
+  const result = await requestAvailable(
+    { AreaCode: areaCode, Contains: local, PageSize: "20" },
+    fetchImpl,
+  );
   if (!result.ok) {
     return {
       number,
@@ -144,7 +171,7 @@ export async function checkTwilioExact(
     };
   }
 
-  const match = result.data[0];
+  const match = result.data.find((entry) => entry.phone_number && nanpDigits(entry.phone_number) === digits);
   return {
     number,
     configured: true,
@@ -193,7 +220,10 @@ export async function checkTwilioContains(
     return { pattern: normalized, areaCode, available: false, numbers: [], checkedAt };
   }
 
-  const numbers = result.data.map((entry) => entry.phone_number).filter((n): n is string => Boolean(n));
+  const numbers = result.data
+    .map((entry) => entry.phone_number)
+    .filter((value): value is string => Boolean(value))
+    .filter((value) => matchesPattern(value, normalized));
   return { pattern: normalized, areaCode, available: numbers.length > 0, numbers, checkedAt };
 }
 

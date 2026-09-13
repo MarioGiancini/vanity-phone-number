@@ -30,6 +30,16 @@ describe("twilio availability", () => {
     expect(result.available).toBe(true);
     expect(result.method).toBe("exact");
     expect(result.locality).toBe("Las Vegas");
+    const requested = String((fetchImpl as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][0]);
+    expect(requested).toContain("AreaCode=702");
+    expect(requested).toContain("Contains=7764726");
+  });
+
+  it("exact: ignores non-matching results (Twilio ignores PhoneNumber)", async () => {
+    const result = await checkTwilioExact("7027764726", {
+      fetchImpl: mockFetch({ available_phone_numbers: [{ phone_number: "+17028420466" }] }),
+    });
+    expect(result.available).toBe(false);
   });
 
   it("exact: reports unavailable when Twilio returns an empty list", async () => {
