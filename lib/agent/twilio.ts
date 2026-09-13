@@ -5,14 +5,34 @@ import { normalizeNanp } from "@/lib/phone";
 export type FetchLike = typeof fetch;
 
 export interface TwilioCredentials {
-  sid: string;
-  token: string;
+  /** Always the account SID — it appears in the request path. */
+  accountSid: string;
+  /** API Key SID (preferred) or the account SID, used as the Basic username. */
+  username: string;
+  /** API Key secret (preferred) or the auth token, used as the Basic password. */
+  password: string;
 }
 
+/**
+ * Prefer a scoped API Key pair; fall back to the account Auth Token. Both use
+ * HTTP Basic auth with the Account SID in the request path.
+ */
 export function twilioCredentials(): TwilioCredentials | null {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  return sid && token ? { sid, token } : null;
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  if (!accountSid) return null;
+
+  const apiKey = process.env.TWILIO_API_KEY;
+  const apiSecret = process.env.TWILIO_API_SECRET;
+  if (apiKey && apiSecret) {
+    return { accountSid, username: apiKey, password: apiSecret };
+  }
+
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (authToken) {
+    return { accountSid, username: accountSid, password: authToken };
+  }
+
+  return null;
 }
 
 export function twilioConfigured(): boolean {
@@ -47,13 +67,15 @@ async function requestAvailable(
   const credentials = twilioCredentials();
   if (!credentials) return { ok: false, status: 0, detail: "not-configured" };
 
-  const url = new URL(`${API_BASE}/${credentials.sid}/AvailablePhoneNumbers/US/Local.json`);
+  const url = new URL(
+    `${API_BASE}/${credentials.accountSid}/AvailablePhoneNumbers/US/Local.json`,
+  );
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
 
   try {
     const response = await fetchImpl(url, {
       headers: {
-        Authorization: `Basic ${Buffer.from(`${credentials.sid}:${credentials.token}`).toString("base64")}`,
+        Authorization: `Basic ${Buffer.from(`${credentials.username}:${credentials.password}`).toString("base64")}`,
       },
       cache: "no-store",
     });
@@ -101,7 +123,7 @@ export async function checkTwilioExact(
       provider: "none",
       method: "exact",
       message:
-        "Availability checks aren't configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to enable them.",
+        "Availability checks aren't configured. Set TWILIO_ACCOUNT_SID plus TWILIO_API_KEY/TWILIO_API_SECRET (or TWILIO_AUTH_TOKEN) to enable them.",
       checkedAt: Date.now(),
     };
   }

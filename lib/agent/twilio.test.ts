@@ -39,6 +39,18 @@ describe("twilio availability", () => {
     expect(result.available).toBe(false);
   });
 
+  it("prefers an API key over the auth token", async () => {
+    vi.stubEnv("TWILIO_API_KEY", "SK123");
+    vi.stubEnv("TWILIO_API_SECRET", "apisecret");
+    const fetchImpl = mockFetch({ available_phone_numbers: [] });
+    await checkTwilioExact("7027764726", { fetchImpl });
+    const init = (fetchImpl as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as {
+      headers: Record<string, string>;
+    };
+    const decoded = Buffer.from(init.headers.Authorization.replace("Basic ", ""), "base64").toString();
+    expect(decoded).toBe("SK123:apisecret");
+  });
+
   it("contains: sends the word as a pattern and maps results", async () => {
     const fetchImpl = mockFetch({ available_phone_numbers: [{ phone_number: "+17022442633" }] });
     const result = await checkTwilioContains("702", "BIGCODE", { fetchImpl });

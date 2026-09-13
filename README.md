@@ -132,7 +132,8 @@ Copy `.env.example` to `.env.local`. Everything is optional:
 
 | Variable | Enables |
 | --- | --- |
-| `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` | Availability checks against Twilio's inventory |
+| `TWILIO_ACCOUNT_SID` + `TWILIO_API_KEY` + `TWILIO_API_SECRET` | Availability checks (preferred: scoped, rotatable API key) |
+| `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` | Availability checks (alternative: full-account auth token) |
 | `VANITY_AGENT_API_KEY` | The `/api/agent/*` routes + MCP server |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URL used by robots/sitemap/OpenAPI/catalog |
 | `TWILIO_MOCK=true` | Deterministic fake availability results for local demos/tests |
@@ -147,9 +148,11 @@ put a distributed rate limiter or WAF in front of `/api/availability`; the in-pr
 ### Availability checking
 
 Availability is checked against **Twilio's inventory** (via `AvailablePhoneNumbers`), not the whole
-carrier market. To use it, create a Twilio account and set `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`.
-Without them, every availability path returns `configured: false` and makes zero network calls.
-Results are labeled "available in Twilio's inventory at query time," never a guarantee.
+carrier market. To use it, create a Twilio account and set credentials — preferably a scoped API Key
+(`TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`), or the account Auth Token as a
+fallback (`TWILIO_AUTH_TOKEN`). Without them, every availability path returns `configured: false`
+and makes zero network calls. Results are labeled "available in Twilio's inventory at query time,"
+never a guarantee.
 
 Two methods: an **exact** check per number (the UI card button) and a **`Contains`** pattern per word
 (`POST /api/agent/verify`), which confirms every number that spells a word in one call.
