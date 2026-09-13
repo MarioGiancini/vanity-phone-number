@@ -39,6 +39,7 @@ Endpoints:
 
 - [About](/about)
 - [Privacy](/privacy): local-first, anonymous analytics with opt-out, bring-your-own carrier keys.
+- [Terms](/terms)
 - [security.txt](/.well-known/security.txt)
 - [Security policy](https://github.com/MarioGiancini/vanity-phone-number/blob/main/SECURITY.md)
 

@@ -81,6 +81,9 @@ export function AppShell() {
           <Link href="/privacy" className="hover:text-ink">
             Privacy
           </Link>
+          <Link href="/terms" className="hover:text-ink">
+            Terms
+          </Link>
           <Link href="/docs" className="hover:text-ink">
             API docs
           </Link>

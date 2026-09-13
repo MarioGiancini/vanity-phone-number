@@ -54,6 +54,7 @@ export function GET() {
       "/api/agent": {
         get: {
           summary: "Capability document",
+        operationId: "getCapabilities",
           security: [],
           responses: { "200": { description: "Endpoints, themes, and examples" } },
         },
@@ -61,6 +62,7 @@ export function GET() {
       "/api/agent/find": {
         post: {
           summary: "Find ranked vanity numbers",
+        operationId: "findVanityNumbers",
           requestBody: {
             required: true,
             content: {
@@ -108,6 +110,7 @@ export function GET() {
       "/api/agent/decode": {
         post: {
           summary: "Decode a number into dictionary readings",
+        operationId: "decodeNumber",
           requestBody: {
             required: true,
             content: {
@@ -131,6 +134,7 @@ export function GET() {
       "/api/agent/verify": {
         post: {
           summary: "Batch-verify words against Twilio inventory",
+        operationId: "verifyWords",
           requestBody: {
             required: true,
             content: {
@@ -154,9 +158,53 @@ export function GET() {
           responses: { "200": { description: "Per-word availability" }, "401": { description: "Unauthorized" } },
         },
       },
+      "/api/agent/discover": {
+        post: {
+          summary: "Scan an area code's inventory for numbers that spell words",
+          operationId: "discoverAvailableNumbers",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    areaCode: { type: "string", example: "702" },
+                    pages: { type: "integer" },
+                    limit: { type: "integer" },
+                    minScore: { type: "integer" },
+                  },
+                  required: ["areaCode"],
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Discovered numbers",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      areaCode: { type: "string" },
+                      scanned: { type: "integer" },
+                      matches: { type: "integer" },
+                      results: { type: "array", items: { $ref: "#/components/schemas/Candidate" } },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Missing or invalid agent key", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "429": { description: "Rate limited", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
       "/api/availability": {
         post: {
           summary: "Check a single number against Twilio inventory",
+        operationId: "checkAvailability",
           responses: { "200": { description: "Availability result" }, "429": { description: "Rate limited" } },
         },
       },
