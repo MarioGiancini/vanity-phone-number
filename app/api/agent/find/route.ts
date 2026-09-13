@@ -4,7 +4,7 @@ import { carrierOverride } from "@/lib/agent/credentials";
 import { findCandidates, type FindInput } from "@/lib/agent/find";
 import { anyProviderConfigured, checkExact } from "@/lib/agent/providers";
 import type { AvailabilityResult } from "@/lib/availability";
-import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { clientKey, rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,11 +22,9 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response;
 
   const limited = rateLimit(`find:${clientKey(request)}`, { limit: 60, windowMs: 60_000 });
+  const headers = rateLimitHeaders(limited, 60);
   if (!limited.ok) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded." },
-      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
-    );
+    return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429, headers });
   }
 
   const body = (await request.json().catch(() => ({}))) as FindBody;
@@ -69,14 +67,17 @@ export async function POST(request: Request) {
     if (available.length > 0 || configured) results = available;
   }
 
-  return NextResponse.json({
-    resolved,
-    availabilityConfigured: configured,
-    checkedAvailability: shouldCheck && configured,
-    count: results.length,
-    notes,
-    results,
-  });
+  return NextResponse.json(
+    {
+      resolved,
+      availabilityConfigured: configured,
+      checkedAvailability: shouldCheck && configured,
+      count: results.length,
+      notes,
+      results,
+    },
+    { headers },
+  );
 }
 
 export async function GET() {

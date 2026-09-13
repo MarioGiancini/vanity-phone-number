@@ -3,7 +3,7 @@ import { authorizeAgent } from "@/lib/agent/auth";
 import { carrierOverride } from "@/lib/agent/credentials";
 import { discoverVanityNumbers } from "@/lib/agent/discover";
 import { anyProviderConfigured } from "@/lib/agent/providers";
-import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { clientKey, rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,17 +25,15 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response;
 
   const limited = rateLimit(`discover:${clientKey(request)}`, { limit: 6, windowMs: 60_000 });
+  const headers = rateLimitHeaders(limited, 6);
   if (!limited.ok) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded." },
-      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
-    );
+    return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429, headers });
   }
 
   const body = (await request.json().catch(() => ({}))) as DiscoverBody;
   const areaCode = (body.areaCode ?? "").replace(/[^0-9]/g, "").slice(0, 3);
   if (areaCode.length !== 3) {
-    return NextResponse.json({ error: "Provide a 3-digit areaCode." }, { status: 400 });
+    return NextResponse.json({ error: "Provide a 3-digit areaCode." }, { status: 400, headers });
   }
 
   const override = carrierOverride(request);
@@ -49,7 +47,7 @@ export async function POST(request: Request) {
         results: [],
         notes: ["No carrier is configured, so there's no inventory to scan."],
       },
-      { status: 200 },
+      { status: 200, headers },
     );
   }
 
@@ -61,13 +59,16 @@ export async function POST(request: Request) {
     override,
   });
 
-  return NextResponse.json({
-    ...discovery,
-    availabilityConfigured: true,
-    notes: [
-      "Scanned a sample of Twilio's available inventory for this area code; results are provider-scoped and change over time.",
-    ],
-  });
+  return NextResponse.json(
+    {
+      ...discovery,
+      availabilityConfigured: true,
+      notes: [
+        "Scanned a sample of available inventory for this area code; results are provider-scoped and change over time.",
+      ],
+    },
+    { headers },
+  );
 }
 
 export async function GET() {

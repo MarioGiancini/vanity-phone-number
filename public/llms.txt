@@ -14,8 +14,9 @@ availability against Twilio's inventory.
 
 ## Agent API
 
+- [Agent guide](/agents.md): when to use this, which tool to call, and tips.
 - [Docs](/docs): human-readable API guide.
-- [OpenAPI](/openapi.json): OpenAPI 3.1 description.
+- [OpenAPI](/openapi.json): OpenAPI 3.1 description (typed error schema included).
 - [API catalog](/.well-known/api-catalog): RFC 9727 linkset.
 - [Capability document](/api/agent): endpoints, themes, examples (no auth).
 - [auth.md](/auth.md): how agents authenticate.
@@ -33,6 +34,13 @@ Endpoints:
 - [MCP server card](/.well-known/mcp/server-card): tools and transports.
 - [server.json](/server.json): registry manifest.
 - Local stdio server: `scripts/mcp-server.mjs`.
+
+## About & trust
+
+- [About](/about)
+- [Privacy](/privacy): local-first, anonymous analytics with opt-out, bring-your-own carrier keys.
+- [security.txt](/.well-known/security.txt)
+- [Security policy](https://github.com/MarioGiancini/vanity-phone-number/blob/main/SECURITY.md)
 
 ## Optional configuration
 

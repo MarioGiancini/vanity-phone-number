@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { DICTIONARY } from "@/data/dictionary";
 import { BUILT_IN_LISTS } from "@/data/word-lists";
 import { authorizeAgent } from "@/lib/agent/auth";
-import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { clientKey, rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { buildDigitIndex, decodeLocal, normalize, type DigitIndex } from "@/lib/vanity";
 
 export const runtime = "nodejs";
@@ -35,11 +35,9 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response;
 
   const limited = rateLimit(`decode:${clientKey(request)}`, { limit: 120, windowMs: 60_000 });
+  const headers = rateLimitHeaders(limited, 120);
   if (!limited.ok) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded." },
-      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
-    );
+    return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429, headers });
   }
 
   const body = (await request.json().catch(() => ({}))) as DecodeBody;
@@ -51,7 +49,7 @@ export async function POST(request: Request) {
   if (!/^[0-9]{7}$/.test(local)) {
     return NextResponse.json(
       { error: "Provide a 7-digit local number (e.g. 7764726) or a 10-digit number." },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
 
@@ -62,7 +60,7 @@ export async function POST(request: Request) {
     limit: body.limit ?? 50,
   });
 
-  return NextResponse.json({ areaCode, local, count: readings.length, readings });
+  return NextResponse.json({ areaCode, local, count: readings.length, readings }, { headers });
 }
 
 export async function GET() {

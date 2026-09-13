@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { carrierOverride } from "@/lib/agent/credentials";
 import { anyProviderConfigured, checkExact, providerStatuses } from "@/lib/agent/providers";
 import { normalizeNanp } from "@/lib/phone";
-import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { clientKey, rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,14 +19,16 @@ export async function GET() {
 export async function POST(request: Request) {
   const override = carrierOverride(request);
   // Aggressive throttling on the server's own keys; BYO-keys callers get more.
+  const limit = override ? 60 : 10;
   const limited = rateLimit(`availability:${override ? "byo" : "server"}:${clientKey(request)}`, {
-    limit: override ? 60 : 10,
+    limit,
     windowMs: 60_000,
   });
+  const headers = rateLimitHeaders(limited, limit);
   if (!limited.ok) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Try again shortly, or add your own carrier keys." },
-      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
+      { status: 429, headers },
     );
   }
 
@@ -44,12 +46,13 @@ export async function POST(request: Request) {
         message: "Enter a valid 10-digit US number.",
         checkedAt: Date.now(),
       },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
 
   const result = await checkExact(number, { override });
   return NextResponse.json(result, {
     status: result.available === null && result.configured ? 502 : 200,
+    headers,
   });
 }

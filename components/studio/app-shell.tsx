@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { KeyRound } from "lucide-react";
+import { REPO_URL } from "@/lib/seo";
 import { AreaCodePicker } from "./area-code-picker";
 import { CarrierKeysDialog } from "./carrier-keys-dialog";
 import { Phone } from "./phone";
@@ -73,6 +74,23 @@ export function AppShell() {
             Carrier keys
           </button>
         </div>
+        <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Site">
+          <Link href="/about" className="hover:text-ink">
+            About
+          </Link>
+          <Link href="/privacy" className="hover:text-ink">
+            Privacy
+          </Link>
+          <Link href="/docs" className="hover:text-ink">
+            API docs
+          </Link>
+          <Link href="/agents.md" className="hover:text-ink">
+            Agent guide
+          </Link>
+          <a href={REPO_URL} className="hover:text-ink">
+            GitHub
+          </a>
+        </nav>
       </footer>
 
       <StudioAnalytics />

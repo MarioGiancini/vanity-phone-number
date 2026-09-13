@@ -11,8 +11,9 @@ export function GET() {
       title: "Vanity Phone Number Studio — Agent API",
       version: "0.1.0",
       description:
-        "Generate memorable vanity phone numbers from a brief, decode numbers into words, and verify availability.",
+        "Generate memorable vanity phone numbers from a brief, decode numbers into words, and verify availability. The API is unversioned and additive; a breaking change would ship under a new path with the previous path kept for at least 90 days.",
       license: { name: "MIT", url: "https://github.com/MarioGiancini/vanity-phone-number/blob/main/LICENSE" },
+      contact: { name: "Mario Giancini", url: "https://github.com/MarioGiancini/vanity-phone-number", email: "mario@giancini.com" },
     },
     servers: [{ url: base }],
     security: [{ bearerAuth: [] }],
@@ -25,6 +26,14 @@ export function GET() {
         },
       },
       schemas: {
+        Error: {
+          type: "object",
+          properties: {
+            error: { type: "string" },
+            message: { type: "string" },
+          },
+          required: ["error"],
+        },
         Candidate: {
           type: "object",
           properties: {
@@ -90,8 +99,9 @@ export function GET() {
                 },
               },
             },
-            "401": { description: "Missing or invalid agent key" },
-            "503": { description: "Agent API not configured on the server" },
+            "401": { description: "Missing or invalid agent key", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "429": { description: "Rate limited", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            "503": { description: "Agent API not configured on the server", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

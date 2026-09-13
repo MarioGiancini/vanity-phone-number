@@ -25,6 +25,8 @@ export interface RateLimitResult {
   ok: boolean;
   remaining: number;
   retryAfterSeconds: number;
+  /** Seconds until the bucket is full again (the reset window). */
+  resetSeconds: number;
 }
 
 export function rateLimit(
@@ -32,12 +34,14 @@ export function rateLimit(
   { limit, windowMs }: RateLimitOptions,
   now = Date.now(),
 ): RateLimitResult {
+  const resetSeconds = Math.ceil(windowMs / 1000);
+
   if (buckets.size > MAX_BUCKETS) buckets.clear();
 
   const bucket = buckets.get(key);
   if (!bucket) {
     buckets.set(key, { tokens: limit - 1, updatedAt: now });
-    return { ok: true, remaining: limit - 1, retryAfterSeconds: 0 };
+    return { ok: true, remaining: limit - 1, retryAfterSeconds: 0, resetSeconds };
   }
 
   const refill = ((now - bucket.updatedAt) / windowMs) * limit;
@@ -46,12 +50,27 @@ export function rateLimit(
   if (tokens < 1) {
     buckets.set(key, { tokens, updatedAt: now });
     const retryAfterSeconds = Math.max(1, Math.ceil(((1 - tokens) / limit) * (windowMs / 1000)));
-    return { ok: false, remaining: 0, retryAfterSeconds };
+    return { ok: false, remaining: 0, retryAfterSeconds, resetSeconds };
   }
 
   const next = tokens - 1;
   buckets.set(key, { tokens: next, updatedAt: now });
-  return { ok: true, remaining: Math.floor(next), retryAfterSeconds: 0 };
+  return { ok: true, remaining: Math.floor(next), retryAfterSeconds: 0, resetSeconds };
+}
+
+/** Standard (`RateLimit-*`, RFC 9331) and legacy (`X-RateLimit-*`) headers. */
+export function rateLimitHeaders(result: RateLimitResult, limit: number): Record<string, string> {
+  const remaining = String(Math.max(0, result.remaining));
+  const headers: Record<string, string> = {
+    "RateLimit-Limit": String(limit),
+    "RateLimit-Remaining": remaining,
+    "RateLimit-Reset": String(result.resetSeconds),
+    "X-RateLimit-Limit": String(limit),
+    "X-RateLimit-Remaining": remaining,
+    "X-RateLimit-Reset": String(result.resetSeconds),
+  };
+  if (!result.ok) headers["Retry-After"] = String(result.retryAfterSeconds);
+  return headers;
 }
 
 /** Best-effort client identifier from proxy headers. */
