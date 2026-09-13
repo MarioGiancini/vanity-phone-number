@@ -14,6 +14,7 @@ availability against Twilio's inventory.
 
 ## Agent API
 
+- [Developers hub](/developers): all developer resources in one place.
 - [Agent guide](/agents.md): when to use this, which tool to call, and tips.
 - [Docs](/docs): human-readable API guide.
 - [OpenAPI](/openapi.json): OpenAPI 3.1 description (typed error schema included).

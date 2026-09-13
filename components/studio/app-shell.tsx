@@ -87,6 +87,9 @@ export function AppShell() {
           <Link href="/docs" className="hover:text-ink">
             API docs
           </Link>
+          <Link href="/developers" className="hover:text-ink">
+            Developers
+          </Link>
           <Link href="/agents.md" className="hover:text-ink">
             Agent guide
           </Link>

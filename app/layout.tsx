@@ -32,6 +32,8 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Mario Giancini", url: "https://github.com/MarioGiancini" }],
   creator: "Mario Giancini",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
   openGraph: {
     type: "website",
     siteName: "Vanity Phone Number Studio",
