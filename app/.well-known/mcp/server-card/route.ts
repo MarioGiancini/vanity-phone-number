@@ -13,7 +13,15 @@ export function GET() {
       "Find, decode, and verify vanity phone numbers. Turns a brief like 'cool available vanity number in Las Vegas for a tech business' into ranked, verifiable numbers.",
     version: "0.1.0",
     protocolVersion: "2025-06-18",
-    transport: { type: "stdio" },
+    // Remote endpoint — no local install required.
+    transport: { type: "streamable-http" },
+    url: `${base}/api/mcp`,
+    authentication: {
+      type: "http",
+      scheme: "bearer",
+      description: "Authorization: Bearer <VANITY_AGENT_API_KEY>",
+    },
+    // Local stdio fallback for self-hosting.
     command: "node",
     args: ["scripts/mcp-server.mjs"],
     env: {

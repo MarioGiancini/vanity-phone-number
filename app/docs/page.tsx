@@ -96,11 +96,23 @@ export default function DocsPage() {
 
       <Section title="MCP">
         <p>
-          The repo ships a stdio MCP server with tools{" "}
+          Two ways to connect, both exposing{" "}
           <code className="font-mono text-ink">find_vanity_numbers</code>,{" "}
+          <code className="font-mono text-ink">find_available_numbers</code>,{" "}
           <code className="font-mono text-ink">decode_number</code>, and{" "}
           <code className="font-mono text-ink">check_availability</code>.
         </p>
+        <p className="text-ink">Remote (no install):</p>
+        <Code>{`{
+  "mcpServers": {
+    "vanity": {
+      "type": "http",
+      "url": "https://vanity-phone-number.vercel.app/api/mcp",
+      "headers": { "Authorization": "Bearer YOUR_AGENT_KEY" }
+    }
+  }
+}`}</Code>
+        <p className="text-ink">Local (stdio, self-hosted):</p>
         <Code>{`{
   "mcpServers": {
     "vanity": {

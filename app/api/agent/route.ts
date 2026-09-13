@@ -12,6 +12,10 @@ export async function GET() {
     description:
       "Generate memorable vanity phone numbers from a brief, decode numbers into words, and verify availability.",
     auth: "Authorization: Bearer $VANITY_AGENT_API_KEY  (or x-api-key: $VANITY_AGENT_API_KEY)",
+    mcp: {
+      remote: "POST /api/mcp (Streamable HTTP, bearer auth) — no local install",
+      stdio: "scripts/mcp-server.mjs",
+    },
     endpoints: {
       "GET /api/agent": "This capability document.",
       "POST /api/agent/find": {

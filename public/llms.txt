@@ -29,9 +29,10 @@ Endpoints:
 
 ## MCP
 
-- [MCP server card](/.well-known/mcp/server-card): tools and stdio config.
+- Remote (Streamable HTTP): `POST /api/mcp` — `Authorization: Bearer $VANITY_AGENT_API_KEY`.
+- [MCP server card](/.well-known/mcp/server-card): tools and transports.
 - [server.json](/server.json): registry manifest.
-- Server entrypoint: `scripts/mcp-server.mjs` (Node, stdio).
+- Local stdio server: `scripts/mcp-server.mjs`.
 
 ## Optional configuration
 

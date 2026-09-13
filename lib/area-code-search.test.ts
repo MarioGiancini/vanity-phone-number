@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { lookupAreaCode } from "@/data/area-codes";
 import { describeAreaCode, nearestAreaCode, searchAreaCodes } from "./area-code-search";
 
 describe("area code search", () => {
+  it("includes newer NANPA area codes", () => {
+    expect(lookupAreaCode("945")).toBeDefined();
+    expect(lookupAreaCode("448")).toBeDefined();
+    expect(searchAreaCodes("945")[0]?.code).toBe("945");
+  });
+
   it("finds by code prefix", () => {
     expect(searchAreaCodes("702")[0]?.code).toBe("702");
   });

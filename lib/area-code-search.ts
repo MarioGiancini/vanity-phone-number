@@ -7,8 +7,12 @@ const PREFERRED_LABELS = new Map(AREA_CODE_SUGGESTIONS.map((item) => [item.code,
 export function areaCodeLabel(info: AreaCodeInfo): string {
   const preferred = PREFERRED_LABELS.get(info.code);
   if (preferred) return preferred;
-  const cityState = `${info.city}, ${info.state}`.replace(/^, |, $/g, "");
-  return cityState || `Area code ${info.code}`;
+  const city = info.city?.trim();
+  const state = info.state?.trim();
+  if (city && state) return `${city}, ${state}`;
+  if (state) return state;
+  if (city) return city;
+  return `Area code ${info.code}`;
 }
 
 function toRadians(degrees: number): number {

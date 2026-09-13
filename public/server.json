@@ -6,5 +6,11 @@
   "repository": {
     "url": "https://github.com/MarioGiancini/vanity-phone-number",
     "source": "github"
-  }
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://vanity-phone-number.vercel.app/api/mcp"
+    }
+  ]
 }

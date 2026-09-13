@@ -30,6 +30,7 @@ This project is open source and self-hostable. There is no public key issuer.
 
 - \`POST /api/agent/find\`
 - \`POST /api/agent/decode\`
+- \`POST /api/mcp\` (remote MCP over Streamable HTTP)
 
 ## Endpoints that do not require auth
 

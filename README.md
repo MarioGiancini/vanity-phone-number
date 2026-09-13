@@ -107,9 +107,25 @@ pack, generates candidates, and — when the prompt asks for "available" numbers
 
 ### MCP
 
-For first-class agent tooling, `scripts/mcp-server.mjs` exposes the API as MCP tools
-(`find_vanity_numbers`, `decode_number`, `check_availability`). Copy `.mcp.json.example` to
-`.mcp.json`, drop in your key, and restart your agent:
+Two ways to connect an agent; both expose `find_vanity_numbers`, `find_available_numbers`,
+`decode_number`, and `check_availability`.
+
+**Remote (no install):** `POST /api/mcp` over Streamable HTTP, bearer-authenticated.
+
+```json
+{
+  "mcpServers": {
+    "vanity": {
+      "type": "http",
+      "url": "https://vanity-phone-number.vercel.app/api/mcp",
+      "headers": { "Authorization": "Bearer YOUR_AGENT_KEY" }
+    }
+  }
+}
+```
+
+**Local (stdio, self-hosted):** `scripts/mcp-server.mjs`. Copy `.mcp.json.example` to `.mcp.json`,
+drop in your key, and restart your agent:
 
 ```json
 {
@@ -123,7 +139,7 @@ For first-class agent tooling, `scripts/mcp-server.mjs` exposes the API as MCP t
 }
 ```
 
-The MCP server talks to the running studio over HTTP (`VANITY_API_URL`, default
+The stdio server talks to the running studio over HTTP (`VANITY_API_URL`, default
 `http://localhost:3000`), so start `pnpm dev` first. `.mcp.json` is gitignored.
 
 ## Environment variables
@@ -214,8 +230,12 @@ ZIP→area-code mapping or a geocoding provider (licensing varies).
 ## Regenerating data
 
 `data/dictionary.ts` (top-10k English words, 2–7 letters, plus dev/tech terms) and
-`data/area-codes.ts` (NANP area code → city/state) are generated:
+`data/area-codes.ts` (NANP area codes) are generated:
 
 ```bash
 node scripts/generate-data.mjs
 ```
+
+Area codes merge the **NANPA-sourced in-service NPA list** (`area-codes-nanp`) with city/state labels
+and coordinates from `node-areacodes` (MIT). Codes without a label are still valid, they just have no
+city. The NANPA snapshot is dated 2024-03-30; regenerate periodically to pick up new area codes.
