@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { KeyRound } from "lucide-react";
 import { AreaCodePicker } from "./area-code-picker";
+import { CarrierKeysDialog } from "./carrier-keys-dialog";
 import { Phone } from "./phone";
 import { StudioAnalytics } from "./studio-analytics";
 import { useStudio } from "./studio-context";
@@ -9,6 +12,7 @@ import { Workspace } from "./workspace";
 
 export function AppShell() {
   const { preferences, setAnalyticsEnabled } = useStudio();
+  const [keysOpen, setKeysOpen] = useState(false);
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -59,10 +63,24 @@ export function AppShell() {
           >
             Anonymous analytics: {preferences.analytics ? "on" : "off"}
           </button>
+          <button
+            type="button"
+            onClick={() => setKeysOpen(true)}
+            className="chip chip-interactive shrink-0"
+            title="Use your own Twilio/Telnyx keys in this browser"
+          >
+            <KeyRound className="size-3.5" />
+            Carrier keys
+          </button>
         </div>
       </footer>
 
       <StudioAnalytics />
+      <CarrierKeysDialog
+        key={keysOpen ? "open" : "closed"}
+        open={keysOpen}
+        onClose={() => setKeysOpen(false)}
+      />
     </div>
   );
 }

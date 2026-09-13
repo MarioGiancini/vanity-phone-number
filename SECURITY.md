@@ -18,7 +18,17 @@ This project is safe to self-host and never requires committed secrets:
 
 ## Abuse protection
 
-The public availability endpoint can spend real money against a configured Twilio account. It is
-rate-limited in-process (`lib/rate-limit.ts`) and returns `configured: false` (making zero network
-calls) when no credentials are set. If you deploy publicly with your own Twilio account, put a
-distributed rate limiter / WAF in front of it as well.
+The public availability and discover endpoints can spend real money against a configured carrier
+account. They are rate-limited in-process (`lib/rate-limit.ts`) — aggressively when using the
+server's own keys (10 and 2 requests/min per IP), with more headroom when the caller supplies their
+own keys (60 and 6/min). They return `configured: false` (making zero network calls) when no
+credentials are available. If you deploy publicly with your own carrier account, put a distributed
+rate limiter / WAF in front of them as well.
+
+## Bring-your-own-keys
+
+The Carrier keys dialog stores a visitor's own Twilio/Telnyx credentials in their browser
+(localStorage) and sends them to this app's own routes per request via `x-carrier-*` headers. The
+server uses them only for that request and never persists or logs them. Prefer scoped, rotatable
+keys; note that browser storage is readable by any script on the page (XSS), so treat pasted keys as
+low-privilege.

@@ -1,6 +1,7 @@
 import type { AvailabilityResult } from "@/lib/availability";
 import { normalizeNanp } from "@/lib/phone";
 import { lettersToDigits } from "@/lib/vanity/encode";
+import type { TwilioOverride } from "./credentials";
 
 /** Injection seam for tests; defaults to the global fetch. */
 export type FetchLike = typeof fetch;
@@ -15,10 +16,14 @@ export interface TwilioCredentials {
 }
 
 /**
- * Prefer a scoped API Key pair; fall back to the account Auth Token. Both use
- * HTTP Basic auth with the Account SID in the request path.
+ * Prefer a per-request override (bring-your-own-keys), then a scoped API Key
+ * from env, then the account Auth Token.
  */
-export function twilioCredentials(): TwilioCredentials | null {
+export function twilioCredentials(override?: TwilioOverride): TwilioCredentials | null {
+  if (override?.accountSid && override.apiKey && override.apiSecret) {
+    return { accountSid: override.accountSid, username: override.apiKey, password: override.apiSecret };
+  }
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   if (!accountSid) return null;
 
@@ -36,8 +41,9 @@ export function twilioCredentials(): TwilioCredentials | null {
   return null;
 }
 
-export function twilioConfigured(): boolean {
-  return twilioCredentials() !== null || mockEnabled();
+export function twilioConfigured(override?: TwilioOverride): boolean {
+  if (twilioCredentials(override)) return true;
+  return !override && mockEnabled();
 }
 
 /** Deterministic mock mode for local demos/tests: TWILIO_MOCK=true. */
@@ -89,17 +95,27 @@ interface TwilioPage {
   next_page_uri?: string | null;
 }
 
+export interface TwilioOptions {
+  fetchImpl?: FetchLike;
+  override?: TwilioOverride;
+}
+
+function resolve(options: TwilioOptions): TwilioCredentials | null {
+  return twilioCredentials(options.override);
+}
+
 /**
  * Page through Twilio's available inventory for an area code. PageSize maxes at
  * 1000, so this walks `next_page_uri` to sample a few thousand numbers.
  */
 export async function listAvailableNumbers(
   areaCode: string,
-  options: { pages?: number; fetchImpl?: FetchLike } = {},
+  options: TwilioOptions & { pages?: number } = {},
 ): Promise<AvailableNumber[]> {
-  const credentials = twilioCredentials();
+  const credentials = resolve(options);
   if (!credentials) return [];
-  if (mockEnabled()) {
+
+  if (!options.override && mockEnabled()) {
     return [
       { phoneNumber: `+1${areaCode}2442633`, locality: "Las Vegas", region: "NV" },
       { phoneNumber: `+1${areaCode}7764726`, locality: "Las Vegas", region: "NV" },
@@ -143,13 +159,9 @@ export async function listAvailableNumbers(
 async function requestAvailable(
   params: Record<string, string>,
   fetchImpl: FetchLike,
+  credentials: TwilioCredentials,
 ): Promise<{ ok: true; data: TwilioNumber[] } | { ok: false; status: number; detail: string }> {
-  const credentials = twilioCredentials();
-  if (!credentials) return { ok: false, status: 0, detail: "not-configured" };
-
-  const url = new URL(
-    `${API_BASE}/${credentials.accountSid}/AvailablePhoneNumbers/US/Local.json`,
-  );
+  const url = new URL(`${API_BASE}/${credentials.accountSid}/AvailablePhoneNumbers/US/Local.json`);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
 
   try {
@@ -166,7 +178,10 @@ async function requestAvailable(
     }
 
     const data = (await response.json()) as { available_phone_numbers?: TwilioNumber[] };
-    return { ok: true, data: Array.isArray(data.available_phone_numbers) ? data.available_phone_numbers : [] };
+    return {
+      ok: true,
+      data: Array.isArray(data.available_phone_numbers) ? data.available_phone_numbers : [],
+    };
   } catch {
     return { ok: false, status: 0, detail: "network-error" };
   }
@@ -175,12 +190,13 @@ async function requestAvailable(
 /** Exact-number check (used by the UI card button). */
 export async function checkTwilioExact(
   rawNumber: string,
-  options: { fetchImpl?: FetchLike } = {},
+  options: TwilioOptions = {},
 ): Promise<AvailabilityResult> {
   const number = normalizeNanp(rawNumber) ?? rawNumber;
   const fetchImpl = options.fetchImpl ?? fetch;
+  const credentials = resolve(options);
 
-  if (mockEnabled()) {
+  if (!options.override && mockEnabled()) {
     const available = number.endsWith("6") || number.endsWith("7");
     return {
       number,
@@ -195,7 +211,7 @@ export async function checkTwilioExact(
     };
   }
 
-  if (!twilioCredentials()) {
+  if (!credentials) {
     return {
       number,
       configured: false,
@@ -203,7 +219,7 @@ export async function checkTwilioExact(
       provider: "none",
       method: "exact",
       message:
-        "Availability checks aren't configured. Set TWILIO_ACCOUNT_SID plus TWILIO_API_KEY/TWILIO_API_SECRET (or TWILIO_AUTH_TOKEN) to enable them.",
+        "To check availability, add your Twilio keys in Carrier keys (bottom right), or set them on the server.",
       checkedAt: Date.now(),
     };
   }
@@ -211,12 +227,10 @@ export async function checkTwilioExact(
   // Twilio ignores the `PhoneNumber` filter, so scope by area code + a Contains
   // pattern on the local digits, then confirm the exact number is in the result.
   const digits = nanpDigits(number);
-  const areaCode = digits.slice(0, 3);
-  const local = digits.slice(3);
-
   const result = await requestAvailable(
-    { AreaCode: areaCode, Contains: local, PageSize: "20" },
+    { AreaCode: digits.slice(0, 3), Contains: digits.slice(3), PageSize: "20" },
     fetchImpl,
+    credentials,
   );
   if (!result.ok) {
     return {
@@ -254,12 +268,13 @@ export async function checkTwilioExact(
 export async function checkTwilioContains(
   areaCode: string,
   pattern: string,
-  options: { fetchImpl?: FetchLike } = {},
+  options: TwilioOptions = {},
 ): Promise<ContainsResult> {
   const normalized = pattern.toUpperCase().replace(/[^A-Z0-9*]/g, "");
   const checkedAt = Date.now();
+  const credentials = resolve(options);
 
-  if (mockEnabled()) {
+  if (!options.override && mockEnabled()) {
     const available = normalized.length % 2 === 1;
     return {
       pattern: normalized,
@@ -270,13 +285,14 @@ export async function checkTwilioContains(
     };
   }
 
-  if (!twilioCredentials()) {
+  if (!credentials) {
     return { pattern: normalized, areaCode, available: false, numbers: [], checkedAt };
   }
 
   const result = await requestAvailable(
     { Contains: normalized, AreaCode: areaCode, PageSize: "100" },
     options.fetchImpl ?? fetch,
+    credentials,
   );
   if (!result.ok) {
     return { pattern: normalized, areaCode, available: false, numbers: [], checkedAt };
@@ -293,7 +309,7 @@ export async function checkTwilioContains(
 export async function verifyWords(
   areaCode: string,
   patterns: string[],
-  options: { fetchImpl?: FetchLike; concurrency?: number } = {},
+  options: TwilioOptions & { concurrency?: number } = {},
 ): Promise<ContainsResult[]> {
   const unique = [...new Set(patterns.map((p) => p.toUpperCase()))];
   const concurrency = Math.max(1, Math.min(options.concurrency ?? 5, 10));

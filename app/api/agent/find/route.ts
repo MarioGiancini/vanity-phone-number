@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeAgent } from "@/lib/agent/auth";
+import { carrierOverride } from "@/lib/agent/credentials";
 import { findCandidates, type FindInput } from "@/lib/agent/find";
 import { anyProviderConfigured, checkExact } from "@/lib/agent/providers";
 import type { AvailabilityResult } from "@/lib/availability";
@@ -40,7 +41,8 @@ export async function POST(request: Request) {
     candidates.map((candidate) => ({ ...candidate, availability: null }));
 
   const notes: string[] = [];
-  const configured = anyProviderConfigured();
+  const override = carrierOverride(request);
+  const configured = anyProviderConfigured(override);
 
   if (shouldCheck && configured && results.length > 0) {
     const count = Math.max(1, Math.min(body.availabilityLimit ?? 5, results.length));
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
         .slice(0, count)
         .map(async (candidate) => ({
           ...candidate,
-          availability: await checkExact(candidate.dialable),
+          availability: await checkExact(candidate.dialable, { override }),
         })),
     );
     results = [...checked, ...results.slice(count)];

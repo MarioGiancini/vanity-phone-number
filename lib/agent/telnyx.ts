@@ -1,17 +1,19 @@
 import type { AvailabilityResult } from "@/lib/availability";
 import { normalizeNanp } from "@/lib/phone";
+import type { TelnyxOverride } from "./credentials";
 
 /** Injection seam for tests; defaults to the global fetch. */
 export type FetchLike = typeof fetch;
 
 const API_BASE = "https://api.telnyx.com/v2";
 
-export function telnyxApiKey(): string | undefined {
-  return process.env.TELNYX_API_KEY;
+export function telnyxApiKey(override?: TelnyxOverride): string | undefined {
+  return override?.apiKey || process.env.TELNYX_API_KEY;
 }
 
-export function telnyxConfigured(): boolean {
-  return Boolean(telnyxApiKey()) || telnyxMock();
+export function telnyxConfigured(override?: TelnyxOverride): boolean {
+  if (telnyxApiKey(override)) return true;
+  return !override && telnyxMock();
 }
 
 function telnyxMock(): boolean {
@@ -46,10 +48,15 @@ interface TelnyxPage {
   links?: { next?: string | null };
 }
 
-async function get(url: string, fetchImpl: FetchLike): Promise<TelnyxPage | null> {
+export interface TelnyxOptions {
+  fetchImpl?: FetchLike;
+  override?: TelnyxOverride;
+}
+
+async function get(url: string, key: string, fetchImpl: FetchLike): Promise<TelnyxPage | null> {
   try {
     const response = await fetchImpl(url, {
-      headers: { Authorization: `Bearer ${telnyxApiKey()}` },
+      headers: { Authorization: `Bearer ${key}` },
       cache: "no-store",
     });
     if (!response.ok) return null;
@@ -62,15 +69,17 @@ async function get(url: string, fetchImpl: FetchLike): Promise<TelnyxPage | null
 /** Page through Telnyx's available inventory for an area code (SMS-capable). */
 export async function listAvailableNumbers(
   areaCode: string,
-  options: { pages?: number; fetchImpl?: FetchLike } = {},
+  options: TelnyxOptions & { pages?: number } = {},
 ): Promise<AvailableNumber[]> {
-  if (telnyxMock()) {
+  const key = telnyxApiKey(options.override);
+
+  if (!options.override && telnyxMock()) {
     return [
       { phoneNumber: `+1${areaCode}2442633`, region: "NV" },
       { phoneNumber: `+1${areaCode}7764726`, region: "NV" },
     ];
   }
-  if (!telnyxApiKey()) return [];
+  if (!key) return [];
 
   const pages = Math.max(1, Math.min(options.pages ?? 3, 10));
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -81,7 +90,7 @@ export async function listAvailableNumbers(
     `&filter[features][]=sms&page[size]=250`;
 
   for (let page = 0; page < pages && url; page += 1) {
-    const data = await get(url, fetchImpl);
+    const data = await get(url, key, fetchImpl);
     if (!data) break;
     for (const entry of data.data ?? []) {
       if (entry.phone_number) {
@@ -97,11 +106,11 @@ export async function listAvailableNumbers(
 /** Exact availability on Telnyx. */
 export async function checkTelnyxExact(
   rawNumber: string,
-  options: { fetchImpl?: FetchLike } = {},
+  options: TelnyxOptions = {},
 ): Promise<AvailabilityResult> {
   const number = normalizeNanp(rawNumber) ?? rawNumber;
 
-  if (telnyxMock()) {
+  if (!options.override && telnyxMock()) {
     return {
       number,
       configured: true,
@@ -113,24 +122,24 @@ export async function checkTelnyxExact(
     };
   }
 
-  if (!telnyxApiKey()) {
+  const key = telnyxApiKey(options.override);
+  if (!key) {
     return {
       number,
       configured: false,
       available: null,
       provider: "none",
       method: "exact",
-      message: "Telnyx isn't configured. Set TELNYX_API_KEY.",
+      message: "Telnyx isn't configured. Add a Telnyx API key or set TELNYX_API_KEY.",
       checkedAt: Date.now(),
     };
   }
 
-  const local = digits(number).slice(3);
   const url =
     `${API_BASE}/available_phone_numbers?filter[national_destination_code]=${digits(number).slice(0, 3)}` +
-    `&filter[phone_number][contains]=${local}&filter[features][]=sms&page[size]=250`;
+    `&filter[phone_number][contains]=${digits(number).slice(3)}&filter[features][]=sms&page[size]=250`;
 
-  const data = await get(url, options.fetchImpl ?? fetch);
+  const data = await get(url, key, options.fetchImpl ?? fetch);
   if (!data) {
     return {
       number,

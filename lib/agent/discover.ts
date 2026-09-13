@@ -2,6 +2,7 @@ import { DICTIONARY } from "@/data/dictionary";
 import { BUILT_IN_LISTS } from "@/data/word-lists";
 import { buildDigitIndex, decodeLocal, type DigitIndex } from "@/lib/vanity";
 import { isQualityReading } from "@/lib/word-quality";
+import type { CarrierOverride } from "./credentials";
 import { listAvailableNumbers } from "./providers";
 
 let cachedIndex: DigitIndex | undefined;
@@ -52,6 +53,8 @@ export interface DiscoverInput {
   limit?: number;
   /** Minimum memorability score (0-100); defaults to 80. */
   minScore?: number;
+  /** Per-request carrier credentials (bring-your-own-keys). */
+  override?: CarrierOverride;
 }
 
 /**
@@ -66,7 +69,10 @@ export async function discoverVanityNumbers(input: DiscoverInput): Promise<{
   results: DiscoveredNumber[];
 }> {
   const areaCode = input.areaCode.replace(/[^0-9]/g, "").slice(0, 3);
-  const numbers = await listAvailableNumbers(areaCode, { pages: input.pages ?? 3 });
+  const numbers = await listAvailableNumbers(areaCode, {
+    pages: input.pages ?? 3,
+    override: input.override,
+  });
   const index = getIndex();
   const curated = getCuratedWords();
   const minScore = input.minScore ?? 80;

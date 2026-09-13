@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeAgent } from "@/lib/agent/auth";
+import { carrierOverride } from "@/lib/agent/credentials";
 import { twilioConfigured, verifyWords } from "@/lib/agent/twilio";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
@@ -42,8 +43,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Verify at most 20 words per request." }, { status: 400 });
   }
 
-  const configured = twilioConfigured();
-  const results = await verifyWords(areaCode, words);
+  const override = carrierOverride(request);
+  const configured = twilioConfigured(override?.twilio);
+  const results = await verifyWords(areaCode, words, { override: override?.twilio });
 
   return NextResponse.json({
     areaCode,

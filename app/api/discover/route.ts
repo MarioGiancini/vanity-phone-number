@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { carrierOverride } from "@/lib/agent/credentials";
 import { discoverVanityNumbers } from "@/lib/agent/discover";
 import { anyProviderConfigured } from "@/lib/agent/providers";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -10,12 +11,17 @@ export const dynamic = "force-dynamic";
  * Same-origin route for the Discover tab. Unlike /api/agent/discover this does
  * not require the agent key (the UI can't hold a server secret), so it is
  * tightly rate-limited and capped to a small number of inventory pages.
+ * Visitors can bring their own carrier keys via the Carrier keys dialog.
  */
 export async function POST(request: Request) {
-  const limited = rateLimit(`discover-ui:${clientKey(request)}`, { limit: 3, windowMs: 60_000 });
+  const override = carrierOverride(request);
+  const limited = rateLimit(`discover-ui:${override ? "byo" : "server"}:${clientKey(request)}`, {
+    limit: override ? 6 : 2,
+    windowMs: 60_000,
+  });
   if (!limited.ok) {
     return NextResponse.json(
-      { error: "Rate limit exceeded. Try again in a minute." },
+      { error: "Rate limit exceeded. Try again in a minute, or add your own carrier keys." },
       { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
     );
   }
@@ -26,14 +32,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Provide a 3-digit areaCode." }, { status: 400 });
   }
 
-  if (!anyProviderConfigured()) {
+  if (!anyProviderConfigured(override)) {
     return NextResponse.json({
       areaCode,
       availabilityConfigured: false,
       scanned: 0,
       matches: 0,
       results: [],
-      notes: ["No carrier is configured. Set Twilio or Telnyx credentials to scan inventory."],
+      notes: ["No carrier is configured. Add your own keys or set them on the server."],
     });
   }
 
@@ -41,6 +47,7 @@ export async function POST(request: Request) {
     areaCode,
     pages: Math.min(Math.max(body.pages ?? 2, 1), 3),
     limit: 24,
+    override,
   });
 
   return NextResponse.json({

@@ -1,3 +1,5 @@
+import { carrierHeaders } from "./carrier-keys";
+
 export interface AvailabilityResult {
   /** E.164 number that was checked, e.g. "+17023382633". */
   number: string;
@@ -37,7 +39,7 @@ export interface DiscoverResponse {
 export async function discoverNumbers(areaCode: string, pages = 2): Promise<DiscoverResponse> {
   const response = await fetch("/api/discover", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...carrierHeaders() },
     body: JSON.stringify({ areaCode, pages }),
   });
   if (!response.ok) {
@@ -62,7 +64,7 @@ export async function checkAvailability(rawNumber: string): Promise<Availability
   try {
     const response = await fetch("/api/availability", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...carrierHeaders() },
       body: JSON.stringify({ number: rawNumber }),
     });
     const data = (await response.json()) as AvailabilityResult;

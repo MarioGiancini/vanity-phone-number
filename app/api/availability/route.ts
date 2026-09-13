@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { carrierOverride } from "@/lib/agent/credentials";
 import { anyProviderConfigured, checkExact, providerStatuses } from "@/lib/agent/providers";
 import { normalizeNanp } from "@/lib/phone";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -14,12 +15,17 @@ export async function GET() {
   });
 }
 
-/** Checks whether a number is in Twilio's purchasable inventory. */
+/** Checks whether a number is in a configured carrier's purchasable inventory. */
 export async function POST(request: Request) {
-  const limited = rateLimit(`availability:${clientKey(request)}`, { limit: 20, windowMs: 60_000 });
+  const override = carrierOverride(request);
+  // Aggressive throttling on the server's own keys; BYO-keys callers get more.
+  const limited = rateLimit(`availability:${override ? "byo" : "server"}:${clientKey(request)}`, {
+    limit: override ? 60 : 10,
+    windowMs: 60_000,
+  });
   if (!limited.ok) {
     return NextResponse.json(
-      { error: "Rate limit exceeded. Try again shortly." },
+      { error: "Rate limit exceeded. Try again shortly, or add your own carrier keys." },
       { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
     );
   }
@@ -31,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         number: body.number ?? "",
-        configured: anyProviderConfigured(),
+        configured: anyProviderConfigured(override),
         available: null,
         provider: "none",
         method: "exact",
@@ -42,7 +48,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await checkExact(number);
+  const result = await checkExact(number, { override });
   return NextResponse.json(result, {
     status: result.available === null && result.configured ? 502 : 200,
   });

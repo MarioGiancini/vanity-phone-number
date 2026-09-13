@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeAgent } from "@/lib/agent/auth";
+import { carrierOverride } from "@/lib/agent/credentials";
 import { discoverVanityNumbers } from "@/lib/agent/discover";
 import { anyProviderConfigured } from "@/lib/agent/providers";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -37,7 +38,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Provide a 3-digit areaCode." }, { status: 400 });
   }
 
-  if (!anyProviderConfigured()) {
+  const override = carrierOverride(request);
+  if (!anyProviderConfigured(override)) {
     return NextResponse.json(
       {
         areaCode,
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
     pages: body.pages,
     limit: body.limit,
     minScore: body.minScore,
+    override,
   });
 
   return NextResponse.json({

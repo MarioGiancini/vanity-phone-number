@@ -157,6 +157,15 @@ availability path returns `configured: false` and makes zero network calls. Resu
 Two methods: an **exact** check per number (the UI card button) and a **`Contains`** pattern per word
 (`POST /api/agent/verify`), which confirms every number that spells a word in one call.
 
+### Bring your own carrier keys
+
+Visitors can paste their own Twilio/Telnyx keys into **Carrier keys** (footer button). They are stored
+only in the browser (localStorage) and sent to this app's own routes per request via `x-carrier-*`
+headers; the server uses them transiently and never stores them. Requests using the server's own keys
+are throttled aggressively (10 availability checks/min, 2 inventory scans/min per IP); BYO-key
+requests get more headroom (60/min, 6/min). Availability works when either the server or the visitor
+supplies keys — otherwise the UI tells you to add them.
+
 ## Agent readiness
 
 Machine-discovery surfaces for AI agents:

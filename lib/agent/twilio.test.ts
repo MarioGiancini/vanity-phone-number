@@ -61,6 +61,21 @@ describe("twilio availability", () => {
     expect(decoded).toBe("SK123:apisecret");
   });
 
+  it("uses a per-request override (bring-your-own-keys)", async () => {
+    const fetchImpl = mockFetch({ available_phone_numbers: [] });
+    await checkTwilioExact("7027764726", {
+      fetchImpl,
+      override: { accountSid: "ACOVR", apiKey: "SKOVR", apiSecret: "secretOVR" },
+    });
+    const [url, init] = (fetchImpl as unknown as { mock: { calls: unknown[][] } }).mock.calls[0] as [
+      string,
+      { headers: Record<string, string> },
+    ];
+    expect(String(url)).toContain("/ACOVR/");
+    const decoded = Buffer.from(init.headers.Authorization.replace("Basic ", ""), "base64").toString();
+    expect(decoded).toBe("SKOVR:secretOVR");
+  });
+
   it("contains: sends the word as a pattern and maps results", async () => {
     const fetchImpl = mockFetch({ available_phone_numbers: [{ phone_number: "+17022442633" }] });
     const result = await checkTwilioContains("702", "BIGCODE", { fetchImpl });
